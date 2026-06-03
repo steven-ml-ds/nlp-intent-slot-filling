@@ -55,6 +55,15 @@ show:O flights:O from:O boston:B-fromloc.city_name to:O denver:B-toloc.city_name
 | Intent Detection | BERT | Modern | Fine-tuned `bert-base-uncased`, transfer learning |
 | Slot Filling | CRF | Traditional | Hand-crafted linguistic + domain features, BIO tagging |
 | Slot Filling | BiLSTM-CRF | Modern | Bidirectional LSTM + CRF layer, end-to-end PyTorch |
+| Intent + Slot (joint) | JointBERT | Modern | Shared `bert-base-uncased` encoder, two heads, one forward pass for both tasks |
+
+On the held-out ATIS test split, JointBERT reaches **slot entity-F1 0.957** and
+**intent accuracy 0.974**, beating the separate CRF baseline on slots (+2.0 F1)
+while serving both tasks from a single model. Full apples-to-apples comparison and
+honest trade-offs in [`RESULTS.md`](RESULTS.md).
+
+The JointBERT model lives in the `src/slu/` package (`data.py`, `model.py`,
+`train.py`) with a reproducible separate-model baseline in `baseline.py`.
 
 ### Architecture Highlights
 

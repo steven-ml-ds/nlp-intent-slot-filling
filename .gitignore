@@ -184,4 +184,5 @@ cython_debug/
 data/
 !data/README.md
 models/
+artifacts/
 *.DS_Store
