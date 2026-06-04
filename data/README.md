@@ -4,29 +4,39 @@ This directory contains the ATIS (Airline Travel Information System) dataset fil
 
 ## Format
 
-Each line encodes a single utterance with word-level slot annotations and a sentence-level intent label:
+The `src/slu` package reads the **canonical ATIS layout**: one directory per split,
+each holding three line-aligned files.
 
 ```
-word:slot_label word:slot_label word:slot_label ... <=> intent_label
+data/atis/
+  train/  dev/  test/
+    seq.in    # one utterance per line, space-separated tokens
+    seq.out   # space-separated BIO slot labels, aligned token-for-token to seq.in
+    label     # one intent label per line
 ```
 
-**Example:**
+**Example** -- line *i* of each file within a split:
 ```
-show:O flights:O from:O boston:B-fromloc.city_name to:O new:B-toloc.city_name york:I-toloc.city_name <=> atis_flight
+seq.in    show flights from boston to new york
+seq.out   O    O       O    B-fromloc.city_name O B-toloc.city_name I-toloc.city_name
+label     atis_flight
 ```
 
-- Words and their BIO slot labels are separated by `:`
-- Tokens are separated by spaces
-- The intent label follows `<=>`
+- `seq.in` and `seq.out` have the **same number of tokens per line** (one BIO tag per word).
+- `label` has the **same number of lines** as `seq.in` (one intent per utterance).
+- Loaded by `slu.data.read_split(data_dir, split)`.
 
 ## Files
 
-| File | Description |
+| Path | Description |
 |------|-------------|
-| `train.txt` | Training split |
-| `valid.txt` | Validation split |
-| `test.txt` | Test split (labelled) |
-| `test_unlabeled.txt` | Test split without labels (for inference) |
+| `train/{seq.in,seq.out,label}` | Training split |
+| `dev/{seq.in,seq.out,label}`   | Validation split |
+| `test/{seq.in,seq.out,label}`  | Test split |
+
+> The `airline_dialogue_understanding.ipynb` notebook predates this layout and uses a
+> legacy combined single-file format (`word:slot ... <=> intent`, files `train.txt` /
+> `valid.txt` / `test.txt`). The maintained package uses the split layout above.
 
 ## Labels
 

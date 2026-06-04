@@ -28,21 +28,32 @@ Each task is approached twice -- once with a traditional ML baseline and once wi
 
 The **ATIS** corpus contains transcribed spoken queries to an airline reservation system, annotated at both the sentence level (intent) and word level (slots).
 
-**Format** -- each line is a fully annotated utterance:
+**Format** -- the canonical ATIS layout that the `src/slu` package reads: one
+directory per split, three parallel line-aligned files.
 ```
-word:slot_label word:slot_label ... <=> intent_label
+data/atis/
+  train/  dev/  test/
+    seq.in    # one utterance per line, space-separated tokens
+    seq.out   # space-separated BIO slot labels, aligned token-for-token to seq.in
+    label     # one intent label per line
 ```
 
-**Example:**
+**Example** (line *i* of each file in a split):
 ```
-show:O flights:O from:O boston:B-fromloc.city_name to:O denver:B-toloc.city_name <=> atis_flight
+seq.in    show flights from boston to denver
+seq.out   O    O       O    B-fromloc.city_name O  B-toloc.city_name
+label     atis_flight
 ```
 
 | Property | Value |
 |----------|-------|
 | Intent classes | 18 (e.g. `atis_flight`, `atis_airfare`, `atis_airport`, `atis_ground_service`) |
 | Slot labels | 130 in BIO format (Beginning-Inside-Outside) |
-| Splits | `train.txt`, `valid.txt`, `test.txt` |
+| Splits | `train/`, `dev/`, `test/` -- each a directory of `seq.in` / `seq.out` / `label` |
+
+> The `airline_dialogue_understanding.ipynb` notebook predates this layout and uses
+> a combined single-file format (`word:slot ... <=> intent`); the maintained package
+> reads the split layout above. See [data/README.md](data/README.md).
 
 ---
 
@@ -145,46 +156,37 @@ nlp-intent-slot-filling/
 
 ## How to Run
 
-The notebook is designed to run on **Google Colab**. A GPU runtime is strongly recommended for the BERT fine-tuning and BiLSTM-CRF cells.
+### Reproduce the models (package)
 
-**1. Open in Colab**
+The maintained code lives in `src/slu/`. A GPU/MPS is recommended for training the
+neural models; inference runs fine on CPU.
 
-Upload `airline_dialogue_understanding.ipynb` to [Google Colab](https://colab.research.google.com/) or open it directly from Google Drive.
+```bash
+pip install -r requirements.txt
+# Place ATIS data at data/atis/{train,dev,test}/{seq.in,seq.out,label} -- see data/README.md
 
-Enable a GPU runtime before running:
-`Runtime -> Change runtime type -> Hardware accelerator -> GPU`
+# Train JointBERT (writes artifacts/jointbert/model.pt + metrics.json)
+python -m src.slu.train --epochs 8 --output_dir artifacts/jointbert
 
-**2. Install dependencies**
+# Traditional + BERT baselines on the same test split
+python -m src.slu.baseline --task all --bert_epochs 8 --output_dir artifacts/baseline
 
-Run the first cell, or manually in a new cell:
-```python
-!pip install -r requirements.txt
+# Predict from the trained model
+python -m src.slu.predict --artifact_dir artifacts/jointbert \
+  "show me flights from boston to denver on monday"
 ```
 
-**3. Upload data files**
+Then serve it over HTTP -- see [Serving the Joint Model](#serving-the-joint-model).
+Full four-model comparison and numbers are in [`RESULTS.md`](RESULTS.md).
 
-The notebook expects the ATIS data files at `data/data/` relative to the working directory. The easiest way is to mount Google Drive:
+### Explore the analysis (notebook)
 
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-```
-
-Then place your data files in Drive and set the path accordingly, or upload directly via the Colab file panel (left sidebar -> Files -> Upload) and create the expected folder structure:
-
-```
-/content/
-  data/
-    data/
-      train.txt
-      test.txt
-```
-
-See [data/README.md](data/README.md) for the expected file format.
-
-**4. Run the notebook**
-
-Run all cells top to bottom: `Runtime -> Run all`
+`airline_dialogue_understanding.ipynb` is the original EDA + all-model exploration
+narrative, designed for **Google Colab** with a GPU runtime
+(`Runtime -> Change runtime type -> GPU`). Open it, run the first cell to
+`!pip install -r requirements.txt`, then `Runtime -> Run all`. It uses the legacy
+combined-text ATIS format (see the note under *Dataset Description*), independent of
+the package's split layout.
 
 ---
 
