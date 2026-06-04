@@ -77,7 +77,9 @@ across all models (~0.95–0.97), and the real neural payoff is intent **macro-F
 the rare classes (TF-IDF+LogReg 0.674 → BERT 0.857). JointBERT's win is operational —
 one model and one forward pass replacing two — while matching the separate baseline
 within noise on 3 of 4 metrics. Full four-model table and trade-offs in
-[`RESULTS.md`](RESULTS.md).
+[`RESULTS.md`](RESULTS.md); an honest error analysis of where the model breaks (and why
+the macro-F1 gap is a benchmark artifact, not a defect) is in
+[`MODEL_CARD.md`](MODEL_CARD.md).
 
 The JointBERT model lives in the `src/slu/` package (`data.py`, `model.py`,
 `train.py`) with a reproducible separate-model baseline in `baseline.py`.
@@ -145,6 +147,7 @@ nlp-intent-slot-filling/
   Dockerfile                             # Serving image (code+deps; model mounted at runtime)
   docker-compose.yml
   RESULTS.md                             # Four-model comparison + honest, seed-backed trade-offs
+  MODEL_CARD.md                          # Model card + error analysis (limitations, OOD failures)
   requirements.txt                       # Python dependencies
   .gitignore
   images/                                # Saved plots and figures
