@@ -128,6 +128,10 @@ nlp-intent-slot-filling/
     train.py                             #   Train -> dev-select -> test, writes model + metrics
     baseline.py                          #   Separate-model baseline: CRF slots, LogReg/BERT intent
     predict.py                           #   Single-forward-pass inference from saved artifacts
+    api.py                               #   FastAPI server: POST /predict, GET /health
+  tests/                                 # pytest (CI-safe: API contract tested with a stubbed model)
+  Dockerfile                             # Serving image (code+deps; model mounted at runtime)
+  docker-compose.yml
   RESULTS.md                             # Four-model comparison + honest, seed-backed trade-offs
   requirements.txt                       # Python dependencies
   .gitignore
@@ -183,6 +187,47 @@ Run all cells top to bottom: `Runtime -> Run all`
 
 ---
 
+## Serving the Joint Model
+
+The joint architecture's payoff is operational: **one model, one forward pass, both
+tasks**. `src/slu/api.py` exposes it over HTTP.
+
+**Local**
+```bash
+pip install -r requirements.txt
+python -m src.slu.train --output_dir artifacts/jointbert   # train once (writes model.pt + label_vocab.json)
+uvicorn src.slu.api:app --reload
+```
+
+**Docker** (the model is mounted at runtime, so the image carries no weights)
+```bash
+python -m src.slu.train --output_dir artifacts/jointbert   # train once on the host
+docker compose up --build
+```
+
+**Call it**
+```bash
+curl -s localhost:8000/predict -H 'content-type: application/json' \
+  -d '{"text": "show me flights from boston to denver on monday morning"}'
+```
+```json
+{
+  "intent": "atis_flight",
+  "slots": [{"word": "boston", "tag": "B-fromloc.city_name"}, ...],
+  "entities": {
+    "fromloc.city_name": "boston",
+    "toloc.city_name": "denver",
+    "depart_date.day_name": "monday",
+    "depart_time.period_of_day": "morning"
+  }
+}
+```
+
+`slots` is the lossless per-word BIO view; `entities` collapses spans into a
+ready-to-use map. `GET /health` is a liveness probe that does not force model load.
+
+---
+
 ## Tech Stack
 
 | Library | Purpose |
@@ -192,6 +237,7 @@ Run all cells top to bottom: `Runtime -> Run all`
 | **torchcrf** | CRF layer for the BiLSTM-CRF model |
 | **sklearn-crfsuite** | Traditional CRF for slot filling |
 | **scikit-learn** | TF-IDF, Logistic Regression, GridSearchCV |
+| **FastAPI / uvicorn** | Serving layer -- `POST /predict` over the joint model |
 | **pandas / numpy** | Data manipulation |
 | **matplotlib / seaborn** | Visualisation and evaluation plots |
 | **wordcloud** | EDA -- keyword analysis per intent class |

@@ -1,0 +1,23 @@
+# Serve the trained JointBERT model.
+#
+#   1. Train once on the host:  python -m src.slu.train --output_dir artifacts/jointbert
+#   2. docker compose up --build
+#   3. curl localhost:8000/predict -H 'content-type: application/json' \
+#        -d '{"text": "flights from boston to denver on monday"}'
+#
+# The model is mounted read-only from the host so the image carries no weights.
+services:
+  slu-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts/jointbert:/app/artifacts/jointbert:ro
+    environment:
+      SLU_ARTIFACT_DIR: /app/artifacts/jointbert
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
