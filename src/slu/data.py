@@ -143,5 +143,7 @@ def build_datasets(data_dir, tokenizer, max_len=50) -> Tuple:
     dev_ex = read_split(data_dir, "dev")
     test_ex = read_split(data_dir, "test")
     vocab = LabelVocab(train_ex)
-    make = lambda ex: ATISDataset(ex, tokenizer, vocab, max_len)
+    def make(ex):
+        return ATISDataset(ex, tokenizer, vocab, max_len)
+
     return vocab, make(train_ex), make(dev_ex), make(test_ex)

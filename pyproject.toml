@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atis-slu"
+version = "1.0.0"
+description = "Joint intent detection + slot filling on ATIS (JointBERT) with a reproducible baseline and FastAPI serving."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+
+# Runtime deps for training/serving live in requirements.txt (also used by the
+# Colab notebook). This block lists only what CI needs to lint + run the
+# import-light API tests, so the test job stays fast (no torch/transformers).
+[project.optional-dependencies]
+test = [
+  "fastapi",
+  "httpx",
+  "pytest",
+]
+dev = [
+  "atis-slu[test]",
+  "ruff",
+  "pre-commit",
+]
+
+[tool.setuptools]
+packages = ["slu"]
+package-dir = { slu = "src/slu" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

@@ -18,13 +18,14 @@ import argparse
 import json
 import os
 import random
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import torch
 from seqeval.metrics import classification_report as seq_report
 from seqeval.metrics import f1_score as seq_f1
-from sklearn.metrics import accuracy_score, f1_score as sk_f1
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score as sk_f1
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
@@ -152,7 +153,8 @@ def train(args) -> None:
             torch.save(model.state_dict(), os.path.join(args.output_dir, "model.pt"))
 
     # reload best, score test
-    model.load_state_dict(torch.load(os.path.join(args.output_dir, "model.pt"), map_location=device))
+    best_path = os.path.join(args.output_dir, "model.pt")
+    model.load_state_dict(torch.load(best_path, map_location=device))
     test = evaluate(model, test_dl, vocab, device)
 
     print("\n=== BEST DEV ===")
