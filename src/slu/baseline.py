@@ -1,21 +1,22 @@
-"""Separate-model baseline (CRF slots + BERT intent) on ATIS.
+"""Separate-model baselines on ATIS (CRF slots + LogReg/BERT intent).
 
-Re-scores the project's *traditional/modern split* baseline on the **same**
-held-out test split and the **same** metric as JointBERT, so the comparison is
+Re-scores the project's *traditional/modern split* baselines on the **same**
+held-out test split and the **same** metrics as JointBERT, so the comparison is
 apples-to-apples:
 
 * **Slot filling**     -- sklearn-crfsuite CRF with lexicon + shape features,
   scored with seqeval **entity-level F1** (the README's primary metric).
-* **Intent detection** -- fine-tuned ``bert-base-uncased``, scored with
-  accuracy and macro-F1.
+* **Intent detection** -- two models: a traditional TF-IDF + Logistic Regression
+  and a fine-tuned ``bert-base-uncased``, both scored with accuracy, macro-F1,
+  and weighted-F1.
 
-Both read the canonical ATIS layout via :func:`slu.data.read_split`, so the CRF
-and JointBERT see identical train/test data.
+All read the canonical ATIS layout via :func:`slu.data.read_split`, so every
+baseline and JointBERT see identical train/test data.
 
 Usage::
 
-    python -m src.slu.baseline --data_dir data/atis --task both \
-        --bert_epochs 4 --output_dir artifacts/baseline
+    python -m src.slu.baseline --data_dir data/atis --task all \
+        --bert_epochs 8 --output_dir artifacts/baseline
 """
 
 from __future__ import annotations
