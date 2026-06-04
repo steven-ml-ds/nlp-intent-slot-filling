@@ -3,6 +3,7 @@ torchcrf
 transformers
 sklearn-crfsuite
 scikit-learn
+seqeval
 pandas
 numpy
 matplotlib
