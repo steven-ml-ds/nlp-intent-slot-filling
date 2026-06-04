@@ -198,6 +198,37 @@ def run_bert_intent(train, test, model_name, epochs, max_len, lr, batch_size, de
     return {
         "intent_acc": accuracy_score(y_true, y_pred),
         "intent_macro_f1": f1_score(y_true, y_pred, average="macro", zero_division=0),
+        "intent_weighted_f1": f1_score(y_true, y_pred, average="weighted", zero_division=0),
+    }
+
+
+def run_logreg_intent(train, test, ngram_max=2, C=10.0):
+    """TF-IDF + Logistic Regression intent baseline (the project's traditional model).
+
+    Uses ``class_weight='balanced'`` -- on ATIS this is the single biggest lever
+    for rare-intent macro-F1 (far more than adding n-gram features, which on this
+    short-utterance corpus actually hurt). Essentially deterministic, so no seed
+    averaging is needed.
+    """
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import accuracy_score, f1_score
+
+    Xtr = [" ".join(ex.words) for ex in train]
+    Xte = [" ".join(ex.words) for ex in test]
+    ytr = [ex.intent for ex in train]
+    yte = [ex.intent for ex in test]
+
+    vec = TfidfVectorizer(ngram_range=(1, ngram_max), sublinear_tf=True, min_df=1)
+    Xtr_v = vec.fit_transform(Xtr)
+    Xte_v = vec.transform(Xte)
+    clf = LogisticRegression(C=C, max_iter=2000, class_weight="balanced")
+    clf.fit(Xtr_v, ytr)
+    pred = clf.predict(Xte_v)
+    return {
+        "intent_acc": accuracy_score(yte, pred),
+        "intent_macro_f1": f1_score(yte, pred, average="macro", zero_division=0),
+        "intent_weighted_f1": f1_score(yte, pred, average="weighted", zero_division=0),
     }
 
 
@@ -211,44 +242,54 @@ def main(args) -> None:
     test = read_split(args.data_dir, "test")
     print(f"train={len(train)} test={len(test)}")
 
+    run_crf_t = args.task in ("crf", "all")
+    run_logreg_t = args.task in ("logreg", "all")
+    run_bert_t = args.task in ("bert", "all")
     results: dict = {}
 
-    if args.task in ("crf", "both"):
+    if run_crf_t:
         print("== CRF slot baseline ==")
         crf = run_crf(train, test, args.c1, args.c2)
-        results.update({k: v for k, v in crf.items() if not k.startswith("_")})
-        print({k: round(v, 4) for k, v in results.items() if k.startswith("slot")})
+        results["crf_slots"] = {k: v for k, v in crf.items() if not k.startswith("_")}
+        print({k: round(v, 4) for k, v in results["crf_slots"].items()})
         print(crf["_slot_report"])
 
-    if args.task in ("bert", "both"):
+    if run_logreg_t:
+        print("== TF-IDF + LogReg intent baseline ==")
+        results["logreg_intent"] = run_logreg_intent(train, test, args.ngram_max, args.logreg_c)
+        print({k: round(v, 4) for k, v in results["logreg_intent"].items()})
+
+    if run_bert_t:
         import torch
         device = ("cuda" if torch.cuda.is_available()
                   else "mps" if torch.backends.mps.is_available() else "cpu")
         torch.manual_seed(args.seed)
         print(f"== BERT intent baseline (device={device}) ==")
-        results.update(run_bert_intent(
+        results["bert_intent"] = run_bert_intent(
             train, test, args.model_name, args.bert_epochs, args.max_len,
-            args.lr, args.batch_size, device))
-        print({k: round(v, 4) for k, v in results.items() if k.startswith("intent")})
+            args.lr, args.batch_size, device)
+        print({k: round(v, 4) for k, v in results["bert_intent"].items()})
 
     os.makedirs(args.output_dir, exist_ok=True)
     with open(os.path.join(args.output_dir, "metrics.json"), "w") as f:
-        json.dump({"test": {k: v for k, v in results.items()}, "args": vars(args)}, f, indent=2)
+        json.dump({"test": results, "seed": args.seed, "args": vars(args)}, f, indent=2)
     print(f"saved baseline metrics to {args.output_dir}/metrics.json")
 
 
 def build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="BERT+CRF separate-model baseline on ATIS")
     p.add_argument("--data_dir", default="data/atis")
-    p.add_argument("--task", choices=["crf", "bert", "both"], default="both")
+    p.add_argument("--task", choices=["crf", "bert", "logreg", "all"], default="all")
     p.add_argument("--output_dir", default="artifacts/baseline")
     p.add_argument("--model_name", default="bert-base-uncased")
-    p.add_argument("--bert_epochs", type=int, default=4)
+    p.add_argument("--bert_epochs", type=int, default=8)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=5e-5)
     p.add_argument("--max_len", type=int, default=50)
     p.add_argument("--c1", type=float, default=0.1)
     p.add_argument("--c2", type=float, default=0.1)
+    p.add_argument("--ngram_max", type=int, default=2)
+    p.add_argument("--logreg_c", type=float, default=10.0)
     p.add_argument("--seed", type=int, default=42)
     return p
 
