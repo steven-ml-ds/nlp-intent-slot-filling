@@ -84,6 +84,7 @@ def evaluate(model, loader, vocab, device) -> dict:
     return {
         "intent_acc": accuracy_score(intent_true, intent_pred),
         "intent_macro_f1": sk_f1(intent_true, intent_pred, average="macro", zero_division=0),
+        "intent_weighted_f1": sk_f1(intent_true, intent_pred, average="weighted", zero_division=0),
         "slot_f1": seq_f1(slot_true, slot_pred, zero_division=0),
         "_slot_report": seq_report(slot_true, slot_pred, zero_division=0),
     }

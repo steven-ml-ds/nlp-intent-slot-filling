@@ -57,10 +57,15 @@ show:O flights:O from:O boston:B-fromloc.city_name to:O denver:B-toloc.city_name
 | Slot Filling | BiLSTM-CRF | Modern | Bidirectional LSTM + CRF layer, end-to-end PyTorch |
 | Intent + Slot (joint) | JointBERT | Modern | Shared `bert-base-uncased` encoder, two heads, one forward pass for both tasks |
 
-On the held-out ATIS test split, JointBERT reaches **slot entity-F1 0.957** and
-**intent accuracy 0.974**, beating the separate CRF baseline on slots (+2.0 F1)
-while serving both tasks from a single model. Full apples-to-apples comparison and
-honest trade-offs in [`RESULTS.md`](RESULTS.md).
+On the held-out ATIS test split (3-seed mean), JointBERT reaches **slot entity-F1
+0.954** and **intent accuracy 0.976**, serving both tasks from a single model. The
+honest, seed-backed takeaway is that the value of going neural is **task-dependent**:
+the slot gain over the CRF baseline is small (+1.7 F1), intent *weighted*-F1 is a wash
+across all models (~0.95–0.97), and the real neural payoff is intent **macro-F1** on
+the rare classes (TF-IDF+LogReg 0.674 → BERT 0.857). JointBERT's win is operational —
+one model and one forward pass replacing two — while matching the separate baseline
+within noise on 3 of 4 metrics. Full four-model table and trade-offs in
+[`RESULTS.md`](RESULTS.md).
 
 The JointBERT model lives in the `src/slu/` package (`data.py`, `model.py`,
 `train.py`) with a reproducible separate-model baseline in `baseline.py`.
@@ -116,7 +121,14 @@ Token-level accuracy is a weak metric for BIO tagging (the majority class `O` in
 
 ```
 nlp-intent-slot-filling/
-  airline_dialogue_understanding.ipynb   # Main notebook -- all models, EDA, evaluation
+  airline_dialogue_understanding.ipynb   # Main notebook -- EDA narrative + all-model exploration
+  src/slu/                               # Deployable package (JointBERT + reproducible baseline)
+    data.py                              #   ATIS loading, label vocab, sub-word alignment
+    model.py                             #   JointBERT: shared encoder + intent/slot heads
+    train.py                             #   Train -> dev-select -> test, writes model + metrics
+    baseline.py                          #   Separate-model baseline: CRF slots, LogReg/BERT intent
+    predict.py                           #   Single-forward-pass inference from saved artifacts
+  RESULTS.md                             # Four-model comparison + honest, seed-backed trade-offs
   requirements.txt                       # Python dependencies
   .gitignore
   images/                                # Saved plots and figures
