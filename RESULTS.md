@@ -79,9 +79,26 @@ and `src.slu.baseline --task bert` (BERT-intent) and aggregating the per-run
 `metrics.json`. Numbers were produced on Apple Silicon (MPS); exact values vary slightly
 by device and seed.
 
-## Next steps (deferred)
+## Limitations — and why we're not chasing the macro-F1 gap
 
-- **Recover JointBERT intent macro-F1** — lower `intent_loss_coef` or class-weight the
-  intent loss so the shared slot objective stops dominating the rare intents.
-- **CRF decode layer on the JointBERT slot head** — add a structured decode layer to
-  enforce valid BIO transitions globally, the one slot-side modelling lever left.
+The one place JointBERT trails the separate-model baseline is intent **macro-F1**
+(0.814 vs BERT 0.857). It is tempting to treat that as a model defect and tune it away —
+but on inspection it is a **labeling/benchmark artifact**, and the metric that reflects
+real traffic (weighted-F1) already ties (0.973 vs 0.974). Specifically:
+
+- **4 test intents never appear in train** (5 sentences total) — the head has no output
+  class for them, so they score F1 = 0 and cap macro-F1 below 1.0 no matter what.
+- **Some of those are order-reversed duplicates** of seen combos (`atis_airfare#atis_flight`
+  vs train's `atis_flight#atis_airfare`) — counted as different classes by string match.
+- **Dual-intent `A#B` utterances** can't be represented by a single-label head at all; the
+  honest fix is multi-label, not more data — overkill for ~5 sentences.
+- **74% of train is `atis_flight`**, so a few rare classes dominate the (equal-weight)
+  macro average.
+
+We therefore **deliberately did not** pursue the two tempting experiments (class-weighted /
+re-balanced intent loss; a CRF slot decoder): their expected payoff is marginal on a
+near-saturated benchmark, and the macro-F1 gap is not a real regression. Leaving the
+standard split intact keeps the numbers comparable to the literature.
+
+Full error analysis — including a reproduced out-of-distribution slot-filling failure — is
+in [`MODEL_CARD.md`](MODEL_CARD.md).
