@@ -7,6 +7,7 @@
 ![BERT](https://img.shields.io/badge/BERT-bert--base--uncased-yellow?logo=huggingface)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-F7931E?logo=scikit-learn)
 ![CRF](https://img.shields.io/badge/CRF-sklearn--crfsuite-green)
+[![CI](https://github.com/steven-ml-ds/nlp-intent-slot-filling/actions/workflows/ci.yml/badge.svg)](https://github.com/steven-ml-ds/nlp-intent-slot-filling/actions/workflows/ci.yml)
 
 ---
 
@@ -230,6 +231,21 @@ ready-to-use map. `GET /health` is a liveness probe that does not force model lo
 > local use and demos, but put it behind an auth/rate-limiting gateway before exposing
 > it to the internet. The Docker image pre-bakes `bert-base-uncased`, so the container
 > runs offline; only the fine-tuned `model.pt` is mounted.
+
+---
+
+## Development
+
+```bash
+pip install -e ".[dev]"   # install package + lint/test/pre-commit tooling
+ruff check src tests       # lint (import order, unused imports, style)
+pytest                     # API contract tests — no model needed (predictor is stubbed)
+pre-commit install         # run ruff + hygiene hooks on every commit
+```
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs ruff + pytest on every
+push and PR across Python 3.9 and 3.11. The API module lazy-imports torch, so the test
+job stays fast — it installs only `fastapi`/`httpx`/`pytest`, not the full training stack.
 
 ---
 

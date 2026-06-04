@@ -144,8 +144,11 @@ def run_bert_intent(train, test, model_name, epochs, max_len, lr, batch_size, de
     import torch
     from sklearn.metrics import accuracy_score, f1_score
     from torch.utils.data import DataLoader, Dataset
-    from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
-                              get_linear_schedule_with_warmup)
+    from transformers import (
+        AutoModelForSequenceClassification,
+        AutoTokenizer,
+        get_linear_schedule_with_warmup,
+    )
 
     intents = sorted({ex.intent for ex in train})
     intent2id = {lab: i for i, lab in enumerate(intents)}

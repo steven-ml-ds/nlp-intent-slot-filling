@@ -25,8 +25,6 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from .predict import JointPredictor
-
 ARTIFACT_DIR = os.environ.get("SLU_ARTIFACT_DIR", "artifacts/jointbert")
 
 app = FastAPI(
@@ -37,8 +35,15 @@ app = FastAPI(
 
 
 @lru_cache(maxsize=1)
-def get_predictor() -> JointPredictor:
-    """Load the model once, lazily, on first use (keeps import/test cheap)."""
+def get_predictor():
+    """Load the model once, lazily, on first use.
+
+    ``JointPredictor`` (and its torch / transformers imports) is imported here
+    rather than at module top so the API module stays import-light: tests stub
+    this function and never pay for torch, and CI can run them without it.
+    """
+    from .predict import JointPredictor
+
     return JointPredictor(ARTIFACT_DIR)
 
 
