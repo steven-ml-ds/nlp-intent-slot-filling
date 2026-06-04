@@ -19,6 +19,14 @@ ENV PIP_NO_CACHE_DIR=1 \
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Pre-bake the base encoder + tokenizer so the container runs offline. The mounted
+# model.pt holds only the fine-tuned state_dict; without this, the first request
+# would pull ~440MB of bert-base-uncased from the HuggingFace Hub at runtime (and
+# fail in an air-gapped deploy). Baking it here makes the image self-sufficient.
+RUN python -c "from transformers import AutoModel, AutoTokenizer; \
+    AutoModel.from_pretrained('bert-base-uncased'); \
+    AutoTokenizer.from_pretrained('bert-base-uncased')"
+
 # App code.
 COPY src/ ./src/
 

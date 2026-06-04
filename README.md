@@ -226,6 +226,11 @@ curl -s localhost:8000/predict -H 'content-type: application/json' \
 `slots` is the lossless per-word BIO view; `entities` collapses spans into a
 ready-to-use map. `GET /health` is a liveness probe that does not force model load.
 
+> The endpoint is unauthenticated and uncapped beyond a request-size limit — fine for
+> local use and demos, but put it behind an auth/rate-limiting gateway before exposing
+> it to the internet. The Docker image pre-bakes `bert-base-uncased`, so the container
+> runs offline; only the fine-tuned `model.pt` is mounted.
+
 ---
 
 ## Tech Stack

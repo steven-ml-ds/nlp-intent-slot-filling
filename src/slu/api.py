@@ -43,7 +43,12 @@ def get_predictor() -> JointPredictor:
 
 
 class PredictRequest(BaseModel):
-    text: str = Field(..., examples=["flights from boston to denver on monday"])
+    # Cap input on this open endpoint: ATIS utterances are short, and the tokenizer
+    # truncates to max_len anyway, so a multi-KB payload is never useful work.
+    text: str = Field(
+        ..., min_length=1, max_length=2000,
+        examples=["flights from boston to denver on monday"],
+    )
 
 
 class SlotTag(BaseModel):

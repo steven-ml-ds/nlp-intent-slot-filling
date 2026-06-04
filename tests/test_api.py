@@ -55,6 +55,11 @@ def test_predict_requires_text(client):
     assert client.post("/predict", json={}).status_code == 422
 
 
+def test_predict_rejects_empty_and_oversized(client):
+    assert client.post("/predict", json={"text": ""}).status_code == 422
+    assert client.post("/predict", json={"text": "x " * 2000}).status_code == 422
+
+
 def test_health_does_not_force_load(client):
     r = client.get("/health")
     assert r.status_code == 200
