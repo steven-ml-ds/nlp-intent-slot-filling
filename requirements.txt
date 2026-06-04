@@ -4,6 +4,9 @@ transformers
 sklearn-crfsuite
 scikit-learn
 seqeval
+fastapi
+uvicorn[standard]
+httpx
 pandas
 numpy
 matplotlib

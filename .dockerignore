@@ -1,0 +1,11 @@
+# Keep the build context small + reproducible — model weights are mounted, not baked.
+artifacts/
+data/
+.venv/
+.git/
+images/
+*.ipynb
+__pycache__/
+*.pyc
+.pytest_cache/
+.hf_cache/
